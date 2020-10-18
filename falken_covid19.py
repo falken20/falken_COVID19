@@ -86,7 +86,8 @@ def load_data_urls(_list_urls):
             _list_data.append(df_spain)
 
             count += 1
-            logging.info(f'Processing spanish data dataframes: {count}/{len(_list_urls)}')
+            if count % 10 == 0:
+                logging.info(f'Processing spanish data dataframes: {count}/{len(_list_urls)}')
 
     except Exception as err:
         logging.error(f'Error in method load_data_urls: \n {err}')
