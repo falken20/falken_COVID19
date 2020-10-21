@@ -1,6 +1,6 @@
 # by Richi Rod AKA @richionline / falken20
 
-__title__ = 'COVID19 Personal Analysing'
+__title__ = 'COVID19 Personal Analisys'
 __version__ = '1.0.0'
 __author__ = 'Falken'
 __url_github__ = 'https://github.com/falken20/'
