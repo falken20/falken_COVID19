@@ -48,6 +48,10 @@ def create_list_urls(_year_to_process=2020, _month_from=3):
         current_month = date.today().month
         logging.info(f'Current month and day: {current_month} / {current_day}')
 
+        if int(_month_from) > int(current_month):
+            logging.error(f'The chosen month is after the current month')
+            return _list_urls
+
         # Load links for every day in all the months of the year least the current month
         for month in range(int(_month_from), current_month):
             for day in range(1, 32):
@@ -61,11 +65,15 @@ def create_list_urls(_year_to_process=2020, _month_from=3):
 
         logging.info(f'Number of urls of data files: {len(_list_urls)}')
 
-    except Exception as err:
-        logging.error(f'Error in method create_list_urls: \n {err}')
-
-    finally:
         return _list_urls
+
+    except Exception as err:
+        logging.error(f'Error in method create_list_urls \n'
+                      f'Line: {err.__traceback__.tb_lineno} \n'
+                      f'File: {err.__traceback__.tb_frame.f_code.co_filename} \n'
+                      f'Type Error: {type(err).__name__} \n'
+                      f'Arguments:\n {err.args}')
+        raise
 
 
 def load_data_urls(_list_urls, _only_spain):
@@ -111,7 +119,7 @@ def load_data_urls(_list_urls, _only_spain):
 def generate_data_lists(_list_data):
     """
     Method for generate several lists for dead data, confirmed cases and recovered cases
-    :param _list_data:
+    :param _list_data: Data table with dead cases, confirmed cases and recovered cases
     :return: Three lists with separated data
     """
 
@@ -192,54 +200,63 @@ def generate_heat_map(_list_data, _only_spain):
 
 if __name__ == '__main__':
 
-    print(f'********* {SETUP_DATA["title"]} ********* ')
+    try:
 
-    # Create a list with the urls to a every data day
-    year_to_process = input(f'Year to process (default=2020):')
-    month_from = input(f'Month number to start (default=3):')
-    list_urls = create_list_urls(year_to_process, month_from)
+        print(f'********* {SETUP_DATA["title"]} ********* ')
 
-    only_spain = input(f'Show data only for Spain(default Yes):')
-    if only_spain.upper() == "NO" or only_spain.upper() == "N":
-        only_spain = False
-    else:
-        only_spain = True
+        year_to_process = input(f'Year to process (default=2020):')
+        month_from = input(f'Month number to start (default=3):')
+        only_spain = input(f'Show data only for Spain(default Yes):')
+        if only_spain.upper() == "NO" or only_spain.upper() == "N":
+            only_spain = False
+        else:
+            only_spain = True
 
-    # Transform the urls in a dataframe and after that in a list and filtering by Spain or Global
-    list_data = load_data_urls(list_urls, only_spain)
+        # Create a list with the urls to a every data day
+        list_urls = create_list_urls(year_to_process, month_from)
 
-    # Print several help info to confirm info
-    # print(list_data[3].head())
-    # print(list_data[0].info()) # Get the column info del DataFrame
-    # print(round(list_data[3].describe(), 2))  # Generate descriptive statistics for a day, round to 2 decimals
+        # Transform the urls in a dataframe and after that in a list and filtering by Spain or Global
+        list_data = load_data_urls(list_urls, only_spain)
 
-    # Unify the column name for Latitude and Longitude because at the beginning the name was different
-    logging.info('Unify the column name for Latitude and Longitude')
-    for c in range(0, len(list_data)):
-        list_data[c].rename(columns={'Lat': 'Latitude'}, inplace=True)
-        list_data[c].rename(columns={'Long_': 'Longitude'}, inplace=True)
+        # Print several help info to confirm info
+        # print(list_data[3].head())
+        # print(list_data[0].info()) # Get the column info del DataFrame
+        # print(round(list_data[3].describe(), 2))  # Generate descriptive statistics for a day, round to 2 decimals
 
-    # Get different lists for every kind of data, dead, confirmed cases and recovered cases
-    dead_cases, confirmed_cases, recovered_cases = generate_data_lists(list_data)
+        # Unify the column name for Latitude and Longitude because at the beginning the name was different
+        logging.info('Unify the column name for Latitude and Longitude')
+        for c in range(0, len(list_data)):
+            list_data[c].rename(columns={'Lat': 'Latitude'}, inplace=True)
+            list_data[c].rename(columns={'Long_': 'Longitude'}, inplace=True)
 
-    # Create the graphs
-    generate_graph(dead_cases, 'Dead cases', 'red', only_spain)
-    generate_graph(confirmed_cases, 'Confirmed cases', 'black', only_spain)
-    generate_graph(recovered_cases, 'Recovered cases', 'blue', only_spain)
+        # Get different lists for every kind of data, dead, confirmed cases and recovered cases
+        dead_cases, confirmed_cases, recovered_cases = generate_data_lists(list_data)
 
-    # Generate summary table
-    resume_data = \
-        {'Dead cases': dead_cases[len(dead_cases) - 1],
-         'Confirmed cases': confirmed_cases[len(confirmed_cases) - 1],
-         'Recovered cases': recovered_cases[len(recovered_cases) - 1],
-         'Mortality tax':
-             round(dead_cases[len(dead_cases) - 1] / confirmed_cases[len(confirmed_cases) - 1] * 100, 2),
-         'Recovered tax':
-             round(recovered_cases[len(recovered_cases) - 1] / confirmed_cases[len(confirmed_cases) - 1] * 100, 2)
-         }
+        # Create the graphs
+        if input('Do you want to see the graphs (Y)?') == 'Y':
+            generate_graph(dead_cases, 'Dead cases', 'red', only_spain)
+            generate_graph(confirmed_cases, 'Confirmed cases', 'black', only_spain)
+            generate_graph(recovered_cases, 'Recovered cases', 'blue', only_spain)
 
-    resume_data = pd.DataFrame(data=resume_data, index=[0])
-    logging.info(f'Summary table ({"Spain" if only_spain else "Global"}): \n {resume_data}')
+        # Generate summary table
+        resume_data = \
+            {'Dead cases': dead_cases[len(dead_cases) - 1],
+             'Confirmed cases': confirmed_cases[len(confirmed_cases) - 1],
+             'Recovered cases': recovered_cases[len(recovered_cases) - 1],
+             'Mortality tax':
+                 round(dead_cases[len(dead_cases) - 1] / confirmed_cases[len(confirmed_cases) - 1] * 100, 2),
+             'Recovered tax':
+                 round(recovered_cases[len(recovered_cases) - 1] / confirmed_cases[len(confirmed_cases) - 1] * 100, 2)
+             }
 
-    # Generate heat map
-    generate_heat_map(list_data, only_spain)
+        resume_data = pd.DataFrame(data=resume_data, index=[0])
+        logging.info(f'Summary table ({"Spain" if only_spain else "Global"}): \n {resume_data}')
+
+        # Generate heat map
+        generate_heat_map(list_data, only_spain)
+
+    except Exception as err:
+        logging.error(f'Error at line: {err.__traceback__.tb_lineno} \n'
+                      f'File: {err.__traceback__.tb_frame.f_code.co_filename} \n'
+                      f'Type Error: {type(err).__name__} \n'
+                      f'Arguments:\n {err.args}')
